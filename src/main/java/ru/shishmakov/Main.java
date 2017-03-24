@@ -7,9 +7,7 @@ import ru.shishmakov.core.Server;
  */
 public class Main {
 
-    public static void main(String[] args) {
-        System.out.println("Test");
-        new Server()
-                .startAsync().await();
+    public static void main(String[] args) throws InterruptedException {
+        new Server().startAsync().await();
     }
 }

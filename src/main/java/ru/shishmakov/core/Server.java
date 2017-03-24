@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.invoke.MethodHandles;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -19,9 +20,12 @@ public class Server {
 
     private static final String NAME = MethodHandles.lookup().lookupClass().getSimpleName();
     private static final AtomicReference<LifeCycle> SERVER_STATE = new AtomicReference<>(IDLE);
+    private static final CountDownLatch awaitStart = new CountDownLatch(1);
 
-    LifeCycle getState() {
-        return SERVER_STATE.get();
+    private final ServiceController serviceController;
+
+    public Server() {
+        this.serviceController = new ServiceController();
     }
 
     public Server startAsync() {
@@ -37,7 +41,11 @@ public class Server {
             return this;
         }
 
+        SERVER_STATE.set(INIT);
+        awaitStart.countDown();
+        serviceController.startServices();
         assignThreadHook(this::stop, NAME + "-hook-thread");
+
         SERVER_STATE.set(RUN);
         logger.info("{} started, state: {}", NAME, SERVER_STATE.get());
         return this;
@@ -53,6 +61,7 @@ public class Server {
 
         try {
             SERVER_STATE.set(STOPPING);
+            serviceController.stopServices();
             stopExecutors();
         } finally {
             SERVER_STATE.set(IDLE);
@@ -60,13 +69,18 @@ public class Server {
         }
     }
 
-    public void await() {
+    public void await() throws InterruptedException {
+        awaitStart.await();
         Thread.currentThread().setName(NAME + "-main");
         logger.info("{} thread: {} await the state: {} to stop itself", NAME, Thread.currentThread(), IDLE);
         for (long count = 0; LifeCycle.isNotIdle(SERVER_STATE.get()); count++) {
             if (count % 100 == 0) logger.debug("Thread: {} is alive", Thread.currentThread());
             sleepWithoutInterruptedAfterTimeout(100, MILLISECONDS);
         }
+    }
+
+    public LifeCycle getState() {
+        return SERVER_STATE.get();
     }
 
     private void stopExecutors() {
