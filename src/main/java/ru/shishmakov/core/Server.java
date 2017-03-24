@@ -20,8 +20,11 @@ public class Server {
     private static final String NAME = MethodHandles.lookup().lookupClass().getSimpleName();
     private static final AtomicReference<LifeCycle> SERVER_STATE = new AtomicReference<>(IDLE);
 
+    LifeCycle getState() {
+        return SERVER_STATE.get();
+    }
+
     public Server startAsync() {
-        SERVER_STATE.set(INIT);
         new Thread(this::start, NAME).start();
         return this;
     }
@@ -29,7 +32,7 @@ public class Server {
     public Server start() {
         logger.info("{} starting...", NAME);
         final LifeCycle state = SERVER_STATE.get();
-        if (LifeCycle.isNotRun(state)) {
+        if (LifeCycle.isNotIdle(state)) {
             logger.warn("Warning! {} already started, state: {}", NAME, state);
             return this;
         }
