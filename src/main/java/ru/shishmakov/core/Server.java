@@ -62,7 +62,6 @@ public class Server {
         try {
             SERVER_STATE.set(STOPPING);
             serviceController.stopServices();
-            stopExecutors();
         } finally {
             SERVER_STATE.set(IDLE);
             logger.info("{} stopped, state: {}", NAME, SERVER_STATE.get());
@@ -81,15 +80,5 @@ public class Server {
 
     public LifeCycle getState() {
         return SERVER_STATE.get();
-    }
-
-    private void stopExecutors() {
-        logger.info("{} executor services stopping...", NAME);
-        try {
-//            MoreExecutors.shutdownAndAwaitTermination(executor, STOP_TIMEOUT_SEC, SECONDS);
-            logger.info("Executor services stopped");
-        } catch (Exception e) {
-            logger.error("{} exception occurred during stopping executor services", NAME, e);
-        }
     }
 }

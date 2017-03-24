@@ -30,7 +30,7 @@ public class Consumer {
         this.queue = queue;
     }
 
-    public void start() {
+    protected void start() {
         logger.info("Consumer:{} started", selfNumber);
         try {
             while (consumerState.get() && !Thread.currentThread().isInterrupted()) {
@@ -52,7 +52,7 @@ public class Consumer {
         }
     }
 
-    public void stop() {
+    protected void stop() {
         logger.info("Consumer:{} stopping...", selfNumber);
         try {
             shutdownConsumer();
