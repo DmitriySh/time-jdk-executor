@@ -22,6 +22,7 @@ import static ru.shishmakov.core.LifeCycle.*;
 public class ServiceController {
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
+    private static final String NAME = "Services";
     private static final AtomicReference<LifeCycle> SERVICES_STATE = new AtomicReference<>(IDLE);
     private static final int DEFAULT_CAPACITY = 4096;
     private final PriorityBlockingQueue<TimeTask> queue;
@@ -35,10 +36,10 @@ public class ServiceController {
     }
 
     public void startServices() {
-        logger.info("Services starting...");
+        logger.info("{} starting...", NAME);
         final LifeCycle state = SERVICES_STATE.get();
         if (LifeCycle.isNotIdle(state)) {
-            logger.warn("Warning! services already started, state: {}", state);
+            logger.warn("Warning! {} already started, state: {}", NAME, state);
             return;
         }
 
@@ -47,7 +48,8 @@ public class ServiceController {
             this.producer = new Producer(queue);
             this.consumers = runConsumers();
         } catch (Throwable e) {
-            logger.error("Exception occurred during starting node services", e);
+            logger.error("Exception occurred during starting node {}", NAME.toLowerCase(), e);
+            throw new RuntimeException(e);
         } finally {
             SERVICES_STATE.set(RUN);
             logger.info("Services started, state: {}", SERVICES_STATE.get());
@@ -55,10 +57,10 @@ public class ServiceController {
     }
 
     public void stopServices() {
-        logger.info("Services stopping...");
+        logger.info("{} stopping...", NAME);
         final LifeCycle state = SERVICES_STATE.get();
         if (LifeCycle.isNotRun(state)) {
-            logger.warn("Warning! services already stopped, state: {}", state);
+            logger.warn("Warning! {} already stopped, state: {}", NAME, state);
             return;
         }
 
@@ -67,10 +69,10 @@ public class ServiceController {
             // ???
             stopExecutors();
         } catch (Throwable e) {
-            logger.error("Exception occurred during stopping node services", e);
+            logger.error("Exception occurred during stopping node {}", NAME.toLowerCase(), e);
         } finally {
             SERVICES_STATE.set(IDLE);
-            logger.info("Services stopped, state: {}", SERVICES_STATE.get());
+            logger.info("{} stopped, state: {}", NAME, SERVICES_STATE.get());
         }
     }
 
@@ -83,12 +85,12 @@ public class ServiceController {
     }
 
     private void stopExecutors() {
-        logger.info("Services executor stopping...");
+        logger.info("{} executor stopping...", NAME);
         try {
             MoreExecutors.shutdownAndAwaitTermination(executor, 10, SECONDS);
-            logger.info("Executor services stopped");
+            logger.info("Executor {} stopped", NAME.toLowerCase());
         } catch (Exception e) {
-            logger.error("Services exception occurred during stopping executor services", e);
+            logger.error("{} exception occurred during stopping executor services", NAME, e);
         }
     }
 }

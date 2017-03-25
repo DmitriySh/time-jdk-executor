@@ -41,13 +41,20 @@ public class Server {
             return this;
         }
 
-        SERVER_STATE.set(INIT);
-        awaitStart.countDown();
-        serviceController.startServices();
-        assignThreadHook(this::stop, NAME + "-hook-thread");
-
-        SERVER_STATE.set(RUN);
-        logger.info("{} started, state: {}", NAME, SERVER_STATE.get());
+        try {
+            try {
+                SERVER_STATE.set(INIT);
+                awaitStart.countDown();
+                serviceController.startServices();
+                assignThreadHook(this::stop, NAME + "-hook-thread");
+            } finally {
+                SERVER_STATE.set(RUN);
+                logger.info("{} started, state: {}", NAME, SERVER_STATE.get());
+            }
+        } catch (Exception e) {
+            logger.error("{} exception", NAME, e);
+            this.stop();
+        }
         return this;
     }
 
