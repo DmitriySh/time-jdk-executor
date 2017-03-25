@@ -66,7 +66,7 @@ public class ServiceController {
 
         try {
             SERVICES_STATE.set(STOPPING);
-            // ???
+            consumers.forEach(Consumer::stop);
             stopExecutors();
         } catch (Throwable e) {
             logger.error("Exception occurred during stopping node {}", NAME.toLowerCase(), e);

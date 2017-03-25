@@ -1,5 +1,6 @@
 package ru.shishmakov.core;
 
+import java.lang.invoke.MethodHandles;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Comparator;
@@ -13,6 +14,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class TimeTask implements Callable, Comparable<TimeTask> {
     private static final Comparator<TimeTask> TT_COMPARATOR = buildTaskTimeComparator();
 
+    private static final String NAME = MethodHandles.lookup().lookupClass().getSimpleName();
     private final long orderId;
     private final long scheduledTime;
     private final Callable<?> task;
@@ -51,7 +53,7 @@ public class TimeTask implements Callable, Comparable<TimeTask> {
 
     @Override
     public int compareTo(TimeTask other) {
-        return TT_COMPARATOR.compare(this, checkNotNull(other, "{} is null", TimeTask.class.getSimpleName()));
+        return TT_COMPARATOR.compare(this, checkNotNull(other, "{} is null", NAME));
     }
 
     private static Comparator<TimeTask> buildTaskTimeComparator() {

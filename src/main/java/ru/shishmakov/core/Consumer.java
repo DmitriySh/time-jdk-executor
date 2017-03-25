@@ -20,6 +20,7 @@ import static ru.shishmakov.concurrent.Threads.sleepInterrupted;
 public class Consumer {
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
+    private static final String NAME = MethodHandles.lookup().lookupClass().getSimpleName();
     private static final AtomicInteger numberIterator = new AtomicInteger();
     private final int selfNumber = numberIterator.incrementAndGet();
     private final AtomicBoolean consumerState = new AtomicBoolean(true);
@@ -31,21 +32,21 @@ public class Consumer {
     }
 
     protected void start() {
-        logger.info("Consumer:{} started", selfNumber);
+        logger.info("{}:{} started", NAME, selfNumber);
         try {
             while (consumerState.get() && !Thread.currentThread().isInterrupted()) {
                 Queues.poll(queue).ifPresent(t -> {
-                    logger.debug("<--  Consumer:{} start process task \'{}\' ...", selfNumber, t);
+                    logger.debug("<--  {}:{} start process task \'{}\' ...", NAME, selfNumber, t);
                     try {
                         t.call();
                     } catch (Exception e) {
-                        logger.error("X--X  Consumer:{} failed process task '{}'", selfNumber, e);
+                        logger.error("X--X  {}:{} failed process task '{}'", NAME, selfNumber, e);
                     }
                 });
                 sleepInterrupted(250, MILLISECONDS);
             }
         } catch (Exception e) {
-            logger.error("Consumer:{} error in time of processing", selfNumber, e);
+            logger.error("{}:{} error in time of processing", NAME, selfNumber, e);
         } finally {
             shutdownConsumer();
             awaitStop.countDown();
@@ -53,19 +54,19 @@ public class Consumer {
     }
 
     protected void stop() {
-        logger.info("Consumer:{} stopping...", selfNumber);
+        logger.info("{}:{} stopping...", NAME, selfNumber);
         try {
             shutdownConsumer();
             awaitStop.await(2, SECONDS);
-            logger.info("Consumer:{} stopped", selfNumber);
+            logger.info("{}:{} stopped", NAME, selfNumber);
         } catch (Exception e) {
-            logger.error("Consumer:{} error in time of stopping", selfNumber, e);
+            logger.error("{}:{} error in time of stopping", NAME, selfNumber, e);
         }
     }
 
     private void shutdownConsumer() {
         if (consumerState.compareAndSet(true, false)) {
-            logger.debug("Consumer:{} waiting for shutdown process to complete...", selfNumber);
+            logger.debug("{}:{} waiting for shutdown process to complete...", NAME, selfNumber);
         }
     }
 }
