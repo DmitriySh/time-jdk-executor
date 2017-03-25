@@ -4,9 +4,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.invoke.MethodHandles;
+import java.time.LocalDateTime;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static ru.shishmakov.concurrent.Threads.assignThreadHook;
 import static ru.shishmakov.concurrent.Threads.sleepWithoutInterruptedAfterTimeout;
@@ -87,5 +90,11 @@ public class Server {
 
     public LifeCycle getState() {
         return SERVER_STATE.get();
+    }
+
+    public boolean scheduleTask(LocalDateTime localDateTime, Callable<?> task) {
+        return serviceController.scheduleTask(
+                checkNotNull(localDateTime, "localDateTime is null"),
+                checkNotNull(task, "task is null"));
     }
 }
