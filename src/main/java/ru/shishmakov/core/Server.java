@@ -1,5 +1,6 @@
 package ru.shishmakov.core;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +49,7 @@ public class Server {
             try {
                 SERVER_STATE.set(INIT);
                 awaitStart.countDown();
-                serviceController.startServices();
+                startServices();
                 assignThreadHook(this::stop, NAME + "-hook-thread");
             } finally {
                 SERVER_STATE.set(RUN);
@@ -71,7 +72,7 @@ public class Server {
 
         try {
             SERVER_STATE.set(STOPPING);
-            serviceController.stopServices();
+            stopServices();
         } finally {
             SERVER_STATE.set(IDLE);
             logger.info("{} stopped, state: {}", NAME, SERVER_STATE.get());
@@ -86,6 +87,16 @@ public class Server {
             if (count % 100 == 0) logger.debug("Thread: {} is alive", Thread.currentThread());
             sleepWithoutInterruptedAfterTimeout(100, MILLISECONDS);
         }
+    }
+
+    @VisibleForTesting
+    void startServices() {
+        serviceController.startServices();
+    }
+
+    @VisibleForTesting
+    void stopServices() {
+        serviceController.stopServices();
     }
 
     public LifeCycle getState() {

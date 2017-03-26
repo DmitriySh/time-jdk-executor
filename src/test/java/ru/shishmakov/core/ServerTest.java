@@ -2,7 +2,9 @@ package ru.shishmakov.core;
 
 import org.junit.Test;
 
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.spy;
 import static ru.shishmakov.core.LifeCycle.IDLE;
 import static ru.shishmakov.core.LifeCycle.RUN;
 
@@ -13,18 +15,24 @@ public class ServerTest {
 
     @Test
     public void afterStartServerShouldHasRunState() throws InterruptedException {
-        final Server server = new Server();
+        final Server server = spy(new Server());
+        doNothing().when(server).startServices();
+        doNothing().when(server).stopServices();
+
         server.start();
 
-        if (LifeCycle.isNotRun(server.getState())) fail("Server after start should be in " + RUN + " state");
+        assertEquals("Server after start should be in " + RUN + " state", RUN, server.getState());
     }
 
     @Test
     public void afterStopServerShouldHasIdleState() throws InterruptedException {
-        final Server server = new Server();
+        final Server server = spy(new Server());
+        doNothing().when(server).startServices();
+        doNothing().when(server).stopServices();
+
         server.start();
         server.stop();
 
-        if (LifeCycle.isNotIdle(server.getState())) fail("Server after start should be in " + IDLE + " state");
+        assertEquals("Server after start should be in " + IDLE + " state", IDLE, server.getState());
     }
 }
