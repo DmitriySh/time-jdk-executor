@@ -2,7 +2,7 @@ package ru.shishmakov.core;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.shishmakov.concurrent.Queues;
+import ru.shishmakov.util.Queues;
 
 import java.lang.invoke.MethodHandles;
 import java.time.LocalDateTime;

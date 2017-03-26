@@ -1,4 +1,4 @@
-package ru.shishmakov.concurrent;
+package ru.shishmakov.util;
 
 import com.google.common.util.concurrent.Uninterruptibles;
 import org.slf4j.Logger;

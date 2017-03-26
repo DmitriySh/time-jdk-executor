@@ -2,8 +2,8 @@ package ru.shishmakov.core;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.shishmakov.concurrent.Queues;
-import ru.shishmakov.concurrent.Times;
+import ru.shishmakov.util.Queues;
+import ru.shishmakov.util.Times;
 
 import java.lang.invoke.MethodHandles;
 import java.util.concurrent.BlockingQueue;
@@ -14,7 +14,7 @@ import java.util.function.Predicate;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static ru.shishmakov.concurrent.Threads.sleepInterrupted;
+import static ru.shishmakov.util.Threads.sleepInterrupted;
 
 /**
  * @author Dmitriy Shishmakov on 24.03.17

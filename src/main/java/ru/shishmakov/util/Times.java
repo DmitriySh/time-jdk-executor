@@ -1,4 +1,4 @@
-package ru.shishmakov.concurrent;
+package ru.shishmakov.util;
 
 /**
  * @author Dmitriy Shishmakov on 26.03.17

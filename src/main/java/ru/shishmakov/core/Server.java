@@ -12,8 +12,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static ru.shishmakov.concurrent.Threads.assignThreadHook;
-import static ru.shishmakov.concurrent.Threads.sleepWithoutInterruptedAfterTimeout;
+import static ru.shishmakov.util.Threads.assignThreadHook;
+import static ru.shishmakov.util.Threads.sleepWithoutInterruptedAfterTimeout;
 import static ru.shishmakov.core.LifeCycle.*;
 
 /**
