@@ -25,8 +25,8 @@ public class ServiceController {
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private static final String NAME = "Services";
-    private static final AtomicReference<LifeCycle> SERVICES_STATE = new AtomicReference<>(IDLE);
     private static final int DEFAULT_CAPACITY = 4096;
+    private final AtomicReference<LifeCycle> SERVICES_STATE = new AtomicReference<>(IDLE);
     private final PriorityBlockingQueue<TimeTask> queue;
     private final ExecutorService executor;
     private Producer producer;

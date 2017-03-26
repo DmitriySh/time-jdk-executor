@@ -22,8 +22,8 @@ public class Server {
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private static final String NAME = MethodHandles.lookup().lookupClass().getSimpleName();
-    private static final AtomicReference<LifeCycle> SERVER_STATE = new AtomicReference<>(IDLE);
-    private static final CountDownLatch awaitStart = new CountDownLatch(1);
+    private final AtomicReference<LifeCycle> SERVER_STATE = new AtomicReference<>(IDLE);
+    private final CountDownLatch awaitStart = new CountDownLatch(1);
 
     private final ServiceController serviceController;
 
