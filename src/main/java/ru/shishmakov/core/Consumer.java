@@ -3,12 +3,14 @@ package ru.shishmakov.core;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.shishmakov.concurrent.Queues;
+import ru.shishmakov.concurrent.Times;
 
 import java.lang.invoke.MethodHandles;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -21,8 +23,9 @@ public class Consumer {
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private static final String NAME = MethodHandles.lookup().lookupClass().getSimpleName();
-    private static final AtomicInteger numberIterator = new AtomicInteger();
-    private final int selfNumber = numberIterator.incrementAndGet();
+    private static final Predicate<TimeTask> timeExpired = buildTimeTaskPredicate();
+    private static final AtomicInteger numberIterator = new AtomicInteger(1);
+    private final int selfNumber = numberIterator.getAndIncrement();
     private final AtomicBoolean consumerState = new AtomicBoolean(true);
     private final CountDownLatch awaitStop = new CountDownLatch(1);
     private final BlockingQueue<TimeTask> queue;
@@ -35,7 +38,7 @@ public class Consumer {
         logger.info("{}:{} started", NAME, selfNumber);
         try {
             while (consumerState.get() && !Thread.currentThread().isInterrupted()) {
-                Queues.poll(queue).ifPresent(t -> {
+                Queues.poll(queue, timeExpired).ifPresent(t -> {
                     logger.debug("<--  {}:{} start process task \'{}\' ...", NAME, selfNumber, t);
                     try {
                         t.call();
@@ -68,5 +71,9 @@ public class Consumer {
         if (consumerState.compareAndSet(true, false)) {
             logger.debug("{}:{} waiting for shutdown process to complete...", NAME, selfNumber);
         }
+    }
+
+    private static Predicate<TimeTask> buildTimeTaskPredicate() {
+        return task -> task != null && Times.isTimeExpired(task.getScheduledTime());
     }
 }

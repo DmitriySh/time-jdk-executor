@@ -1,5 +1,8 @@
 package ru.shishmakov.core;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.lang.invoke.MethodHandles;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -12,20 +15,21 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * @author Dmitriy Shishmakov on 24.03.17
  */
 public class TimeTask implements Callable, Comparable<TimeTask> {
-    private static final Comparator<TimeTask> TT_COMPARATOR = buildTaskTimeComparator();
+    private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
+    private static final Comparator<TimeTask> TT_COMPARATOR = buildTaskTimeComparator();
     private static final String NAME = MethodHandles.lookup().lookupClass().getSimpleName();
-    private final long orderId;
+    private final int orderId;
     private final long scheduledTime;
     private final Callable<?> task;
 
-    public TimeTask(long orderId, LocalDateTime localDateTime, Callable<?> task) {
+    public TimeTask(int orderId, LocalDateTime localDateTime, Callable<?> task) {
         this.orderId = orderId;
         this.scheduledTime = localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli();
         this.task = task;
     }
 
-    public long getOrderId() {
+    public int getOrderId() {
         return orderId;
     }
 

@@ -17,7 +17,7 @@ public class Producer {
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private static final String NAME = MethodHandles.lookup().lookupClass().getSimpleName();
-    private static final AtomicInteger orderIterator = new AtomicInteger();
+    private static final AtomicInteger orderIterator = new AtomicInteger(1);
     private final BlockingQueue<TimeTask> queue;
 
     public Producer(BlockingQueue<TimeTask> queue) {
@@ -25,12 +25,12 @@ public class Producer {
     }
 
     public boolean schedule(LocalDateTime localDateTime, Callable<?> task) {
-        final TimeTask timeTask = new TimeTask(orderIterator.incrementAndGet(), localDateTime, task);
+        final TimeTask timeTask = new TimeTask(orderIterator.getAndIncrement(), localDateTime, task);
         if (Queues.offer(queue, timeTask)) {
-            logger.debug("-->  {} put task \'{}\'", NAME, task);
+            logger.debug("-->  {} put task \'{}\'", NAME, timeTask);
             return true;
         } else {
-            logger.debug("X--X  {} reject task \'{}\'", NAME, task);
+            logger.debug("X--X  {} reject task \'{}\'", NAME, timeTask);
             return false;
         }
     }
