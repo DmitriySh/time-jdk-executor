@@ -3,15 +3,12 @@ package ru.shishmakov.core;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.shishmakov.util.Queues;
 
 import java.lang.invoke.MethodHandles;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -54,17 +51,16 @@ public class ServerTest {
     public void serverShouldExecuteAllScheduleTasks() throws InterruptedException {
         final Server server = new Server();
         final CountDownLatch latch = new CountDownLatch(4);
-        final BlockingQueue<Integer> completed = new LinkedBlockingQueue<>();
         final LocalDateTime firstTask = LocalDateTime.now(ZoneId.of("UTC"));
-        final LocalDateTime secondTask = firstTask.plusSeconds(3);
-        final LocalDateTime thirdTask = secondTask.plusSeconds(2);
+        final LocalDateTime secondTask = firstTask.plusSeconds(1);
+        final LocalDateTime thirdTask = secondTask.plusSeconds(1);
         final LocalDateTime zeroTask = firstTask;
 
         server.start();
-        server.scheduleTask(zeroTask, new ExecutableTask(latch, zeroTask, completed)); // 1
-        server.scheduleTask(thirdTask, new ExecutableTask(latch, thirdTask, completed)); // 2
-        server.scheduleTask(secondTask, new ExecutableTask(latch, secondTask, completed)); // 3
-        server.scheduleTask(firstTask, new ExecutableTask(latch, firstTask, completed)); // 4
+        server.scheduleTask(zeroTask, new ExecutableTask(latch, zeroTask)); // 1
+        server.scheduleTask(thirdTask, new ExecutableTask(latch, thirdTask)); // 2
+        server.scheduleTask(secondTask, new ExecutableTask(latch, secondTask)); // 3
+        server.scheduleTask(firstTask, new ExecutableTask(latch, firstTask)); // 4
 
         try {
             latch.await(10, SECONDS);
@@ -84,18 +80,15 @@ public class ServerTest {
         private final int innerNumber;
         private final CountDownLatch latch;
         private final LocalDateTime scheduleTime;
-        private final BlockingQueue<Integer> completed;
 
-        public ExecutableTask(CountDownLatch latch, LocalDateTime scheduleTime, BlockingQueue<Integer> completed) {
+        public ExecutableTask(CountDownLatch latch, LocalDateTime scheduleTime) {
             this.latch = latch;
             this.scheduleTime = scheduleTime;
-            this.completed = completed;
             this.innerNumber = innerIterator.getAndIncrement();
         }
 
         @Override
         public Void call() throws Exception {
-            Queues.offer(completed, innerNumber);
             latch.countDown();
             taskLogger.debug("Execute task; innerNumber: {}, scheduleTime: {}, now: {}",
                     innerNumber, scheduleTime, LocalDateTime.now(ZoneId.of("UTC")));
