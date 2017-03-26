@@ -8,8 +8,9 @@ import java.lang.invoke.MethodHandles;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.PriorityBlockingQueue;
 
 import static org.junit.Assert.assertArrayEquals;
 
@@ -27,16 +28,16 @@ public class TimeTaskTest {
         final LocalDateTime thirdTask = secondTask.plusSeconds(2);
         final LocalDateTime zeroTask = firstTask;
 
-        final List<TimeTask> list = new ArrayList<>();
-        list.add(new TimeTask(++order, zeroTask, null)); // 1
-        list.add(new TimeTask(++order, thirdTask, null)); // 2
-        list.add(new TimeTask(++order, secondTask, null)); // 3
-        list.add(new TimeTask(++order, firstTask, null)); // 4
-
-        Collections.sort(list);
+        final BlockingQueue<TimeTask> queue = new PriorityBlockingQueue<>();
+        queue.offer(new TimeTask(++order, zeroTask, null)); // 1
+        queue.offer(new TimeTask(++order, thirdTask, null)); // 2
+        queue.offer(new TimeTask(++order, secondTask, null)); // 3
+        queue.offer(new TimeTask(++order, firstTask, null)); // 4
 
         final Integer[] expected = {1, 4, 3, 2};
-        final Integer[] actual = list.stream().map(TimeTask::getOrderId).toArray(Integer[]::new);
+        final List<TimeTask> temp = new ArrayList<>();
+        queue.drainTo(temp);
+        final Integer[] actual = temp.stream().map(TimeTask::getOrderId).toArray(Integer[]::new);
         assertArrayEquals("Time tasks should be sorted", expected, actual);
     }
 }

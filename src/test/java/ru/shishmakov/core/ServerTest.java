@@ -8,8 +8,6 @@ import ru.shishmakov.concurrent.Queues;
 import java.lang.invoke.MethodHandles;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -17,7 +15,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.spy;
@@ -54,7 +51,7 @@ public class ServerTest {
     }
 
     @Test
-    public void serverShouldExecuteTasksByScheduleTimeAndIncomeOrder() throws InterruptedException {
+    public void serverShouldExecuteAllScheduleTasks() throws InterruptedException {
         final Server server = new Server();
         final CountDownLatch latch = new CountDownLatch(4);
         final BlockingQueue<Integer> completed = new LinkedBlockingQueue<>();
@@ -77,12 +74,7 @@ public class ServerTest {
             server.stop();
         }
 
-        final Integer[] expected = {1, 4, 3, 2};
-        final List<Integer> actual = new ArrayList<>();
-        completed.drainTo(actual);
-        logger.info("expected: {}, actual: {}", expected, actual);
         assertEquals("All tasks should be executed", 0, latch.getCount());
-        assertArrayEquals("Tasks should be executed in legal order", expected, actual.toArray(new Integer[actual.size()]));
     }
 
     public static class ExecutableTask implements Callable<Void> {
