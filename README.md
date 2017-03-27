@@ -2,7 +2,7 @@ time-jdk-executor
 =======
     
 My pet project.  
-This is a prototype of multithreaded service executes incoming tasks on a scheduled time. Powered by: `Java SE `only.
+This is a prototype of multithreaded server executes incoming tasks on a scheduled time. Powered by: `Java SE `only.
   
   
 ## Rules:  
