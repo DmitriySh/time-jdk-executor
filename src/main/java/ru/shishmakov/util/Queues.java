@@ -1,10 +1,14 @@
 package ru.shishmakov.util;
 
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -24,36 +28,35 @@ public final class Queues {
     private static final int DELAY_DEFAULT = 20;
     private static final ReentrantLock queueLock = new ReentrantLock(true);
 
-    public static <T> Optional<T> poll(BlockingQueue<T> queue) {
+    public static <T> List<T> poll(BlockingQueue<T> queue) {
         return poll(queue, null);
     }
 
-    public static <T> Optional<T> poll(BlockingQueue<T> queue, Predicate<T> predicate) {
+    public static <T> List<T> poll(BlockingQueue<T> queue, Predicate<T> predicate) {
         return poll(queue, TIMES_DEFAULT, DELAY_DEFAULT, MILLISECONDS, predicate);
     }
 
-    public static <T> Optional<T> poll(BlockingQueue<T> queue, int times, int delay, TimeUnit unit) {
+    public static <T> List<T> poll(BlockingQueue<T> queue, int times, int delay, TimeUnit unit) {
         return poll(queue, times, delay, unit, null);
     }
 
     /**
      * @return item from the queue
      */
-    public static <T> Optional<T> poll(BlockingQueue<T> queue, int times, int delay, TimeUnit unit,
-                                       @Nullable Predicate<T> predicate) {
-        final Callable<Optional<T>> fetching = (predicate == null)
+    public static <T> List<T> poll(BlockingQueue<T> queue, int times, int delay, TimeUnit unit,
+                                   @Nullable Predicate<T> predicate) {
+        final Callable<List<T>> fetching = (predicate == null)
                 ? () -> doPoll(queue, delay, unit)
                 : () -> doPollWithPredicate(queue, delay, unit, predicate);
-        Optional<T> item = Optional.empty();
+        List<T> items = new ArrayList<>();
         try {
             final ReentrantLock lock = queueLock;
             lock.lockInterruptibly();
             try {
-                while (times-- > 0 && !(item = fetching.call()).isPresent()) {
+                while (times-- > 0 && (items = fetching.call()).isEmpty()) {
                     logger.trace("effort: {} X--- item is absent; delay: {}", times, delay);
                 }
-                logger.trace("<--- take item: {}", (item.isPresent()) ? item.get().getClass().getSimpleName() : null);
-                return item;
+                logger.debug("<--- take item: {}", (items.isEmpty()) ? null : items);
             } finally {
                 lock.unlock();
             }
@@ -63,18 +66,23 @@ public final class Queues {
         } catch (Exception e) {
             logger.error("Queue poll exception ...", e);
         }
-        return Optional.empty();
+        return items;
     }
 
-    private static <T> Optional<T> doPollWithPredicate(BlockingQueue<T> queue, int delay, TimeUnit unit,
-                                                       Predicate<T> predicate) throws InterruptedException {
-        T item = queue.peek();
-        if (predicate.test(item)) return Optional.ofNullable(queue.poll(delay, unit));
-        else return Optional.empty();
+    private static <T> List<T> doPollWithPredicate(BlockingQueue<T> queue, int delay, TimeUnit unit,
+                                                   Predicate<T> predicate) throws InterruptedException {
+        final List<T> list = new ArrayList<>();
+        while (!queue.isEmpty()) {
+            final T item = queue.peek();
+            if (predicate.test(item)) Optional.ofNullable(queue.poll(delay, unit)).ifPresent(list::add);
+            else return list;
+        }
+        return list;
     }
 
-    private static <T> Optional<T> doPoll(BlockingQueue<T> queue, int delay, TimeUnit unit) throws InterruptedException {
-        return Optional.ofNullable(queue.poll(delay, unit));
+    private static <T> List<T> doPoll(BlockingQueue<T> queue, int delay, TimeUnit unit) throws InterruptedException {
+        Optional<T> item = Optional.ofNullable(queue.poll(delay, unit));
+        return item.isPresent() ? Lists.newArrayList(item.get()) : Collections.emptyList();
     }
 
     /**
@@ -91,9 +99,9 @@ public final class Queues {
         try {
             boolean success = false;
             while (--times > 0 && !(success = queue.offer(item, delay, unit))) {
-                logger.trace("effort: {} ---X reject item: {}; delay: {}", times, item.getClass().getSimpleName());
+                logger.trace("effort: {} ---X reject item: {}; delay: {}", times, item);
             }
-            if (success) logger.trace("---> insert item: {}", item.getClass().getSimpleName());
+            if (success) logger.debug("---> insert item: {}", item);
             return success;
         } catch (Exception e) {
             logger.error("Queue offer exception ...", e);
