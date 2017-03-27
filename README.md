@@ -10,7 +10,7 @@ This is a prototype of multithreaded server executes incoming tasks on a schedul
   * The server accepts tasks with `LocalDateTime` and `Callable<?>`. 
   * `LocalDateTime` is a scheduled time and `Callable<?>` is a task for execution on that time.
   * Order of the execution uses scheduled time or number of inbound order.
-  * Tasks could comes in a random order and from multiple threads
+  * Tasks could comes in a random order and from multiple threads.
   * 'Hot' tasks should not waste time and executes immediately.
 
   
