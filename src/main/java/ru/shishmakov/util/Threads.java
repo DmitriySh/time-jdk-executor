@@ -15,6 +15,8 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 public final class Threads {
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
+    public static final long STOP_TIMEOUT_SEC = 10;
+
     /**
      * Modified version of the method {@link Uninterruptibles#sleepUninterruptibly(long, TimeUnit)}
      * suppresses {@link InterruptedException} occurred in time of timeout

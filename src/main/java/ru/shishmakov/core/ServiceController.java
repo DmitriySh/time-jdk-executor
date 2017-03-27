@@ -17,6 +17,7 @@ import java.util.stream.IntStream;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static ru.shishmakov.core.LifeCycle.*;
+import static ru.shishmakov.util.Threads.STOP_TIMEOUT_SEC;
 
 /**
  * @author Dmitriy Shishmakov on 24.03.17
@@ -89,7 +90,7 @@ public class ServiceController {
     private void stopExecutors() {
         logger.info("{} executor stopping...", NAME);
         try {
-            MoreExecutors.shutdownAndAwaitTermination(executor, 10, SECONDS);
+            MoreExecutors.shutdownAndAwaitTermination(executor, STOP_TIMEOUT_SEC, SECONDS);
             logger.info("Executor {} stopped", NAME.toLowerCase());
         } catch (Exception e) {
             logger.error("{} exception occurred during stopping executor services", NAME, e);

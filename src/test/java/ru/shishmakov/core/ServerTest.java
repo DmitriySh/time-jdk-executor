@@ -1,5 +1,8 @@
 package ru.shishmakov.core;
 
+import com.google.common.util.concurrent.MoreExecutors;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,10 +14,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -27,12 +27,25 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.spy;
 import static ru.shishmakov.core.LifeCycle.IDLE;
 import static ru.shishmakov.core.LifeCycle.RUN;
+import static ru.shishmakov.util.Threads.STOP_TIMEOUT_SEC;
 
 /**
  * @author Dmitriy Shishmakov on 23.03.17
  */
 public class ServerTest {
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+
+    private static ExecutorService executor;
+
+    @BeforeClass
+    public static void before() throws Exception {
+        executor = Executors.newCachedThreadPool();
+    }
+
+    @AfterClass
+    public static void after() throws Exception {
+        MoreExecutors.shutdownAndAwaitTermination(executor, STOP_TIMEOUT_SEC, SECONDS);
+    }
 
     @Test
     public void afterStartServerShouldHasRunState() {
@@ -61,9 +74,9 @@ public class ServerTest {
     public void serverShouldExecuteAllTasksByScheduleTimeAndIncomeOrder() throws InterruptedException {
         final Server server = new Server();
         server.start();
-        for (int count = 10; count > 0; count--) {
+        for (int count = 5; count > 0; count--) {
             final CountDownLatch latch = new CountDownLatch(4);
-            final BlockingQueue<Integer> completed = new LinkedBlockingQueue<>(4);
+            final BlockingQueue<Integer> completed = new LinkedBlockingQueue<>();
             final List<ExecutableTask> tasks = buildExecutableTasks(latch, completed);
 
             tasks.forEach(t -> server.scheduleTask(t.getScheduleTime(), t));
@@ -76,6 +89,52 @@ public class ServerTest {
             assertArrayEquals("Tasks should be executed in legal order", expected, actual.toArray(new Integer[actual.size()]));
         }
         server.stop();
+    }
+
+    @Test
+    public void serverShouldAsyncExecuteAllTasksByScheduleTimeAndIncomeOrder() throws InterruptedException {
+        int capacity = 30;
+        final CountDownLatch latch = new CountDownLatch(capacity);
+        final BlockingQueue<Integer> completed = new LinkedBlockingQueue<>();
+        final List<ExecutableTask> tasks = new ArrayList<>(capacity);
+
+        final Server server = new Server();
+        server.start();
+        final LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
+        // past
+        executor.submit(() -> {
+            final LocalDateTime pastTime = now.minusSeconds(2);
+            for (int count = capacity / 3; count > 0; count--) {
+                final ExecutableTask task = new ExecutableTask(latch, pastTime, completed);
+                server.scheduleTask(pastTime, task);
+                tasks.add(task);
+            }
+        });
+        // current time
+        executor.submit(() -> {
+            for (int count = capacity / 3; count > 0; count--) {
+                final ExecutableTask task = new ExecutableTask(latch, now, completed);
+                server.scheduleTask(now, task);
+                tasks.add(task);
+            }
+        });
+        // future
+        executor.submit(() -> {
+            final LocalDateTime futureTime = now.plusSeconds(2);
+            for (int count = capacity / 3; count > 0; count--) {
+                final ExecutableTask task = new ExecutableTask(latch, futureTime, completed);
+                server.scheduleTask(futureTime, task);
+                tasks.add(task);
+            }
+        });
+        latch.await(5, SECONDS);
+        server.stop();
+
+        final Integer[] expected = tasks.stream().sorted().map(ExecutableTask::getInnerNumber).toArray(Integer[]::new);
+        final List<Integer> actual = new ArrayList<>(capacity);
+        completed.drainTo(actual);
+        assertEquals("All tasks should be executed", 0, latch.getCount());
+        assertArrayEquals("Tasks should be executed in legal order", expected, actual.toArray(new Integer[actual.size()]));
     }
 
     private static List<ExecutableTask> buildExecutableTasks(CountDownLatch latch, BlockingQueue<Integer> completed) {
