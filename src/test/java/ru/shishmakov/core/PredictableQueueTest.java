@@ -1,11 +1,9 @@
 package ru.shishmakov.core;
 
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import ru.shishmakov.BaseTest;
 import ru.shishmakov.util.PredictableQueue;
 
-import java.lang.invoke.MethodHandles;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -17,8 +15,20 @@ import static org.junit.Assert.*;
 /**
  * @author Dmitriy Shishmakov on 26.03.17
  */
-public class PredictableQueueTest {
-    private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+public class PredictableQueueTest extends BaseTest {
+
+    @Test
+    public void drainToShouldGetFirstItemsLessTwoIfPredicateAssignRuleRetrieveLessTwo() {
+        final PredictableQueue<Integer> queue = new PredictableQueue<>(1, e -> e < 2);
+        queue.addAll(Arrays.asList(1, 1, 1, 2, 3, 4));
+        assertFalse("Queue should not be empty", queue.isEmpty());
+
+        final List<Integer> temp = new ArrayList<>();
+        queue.drainTo(temp, queue.size());
+
+        final Integer[] actual = temp.stream().toArray(Integer[]::new);
+        assertArrayEquals("Numbers should be sorted", new Integer[]{1, 1, 1}, actual);
+    }
 
     @Test
     public void pollAndDrainToShouldNotGetItemsIfPredicateProhibitRetrieves() {
@@ -43,9 +53,8 @@ public class PredictableQueueTest {
         final List<Integer> temp = new ArrayList<>(queue.size());
         queue.drainTo(temp);
 
-        final Integer[] expected = {0, 1, 2, 3};
         final Integer[] actual = temp.stream().toArray(Integer[]::new);
-        assertArrayEquals("Numbers should be sorted", expected, actual);
+        assertArrayEquals("Numbers should be sorted", new Integer[]{0, 1, 2, 3}, actual);
     }
 
     @Test
@@ -66,8 +75,7 @@ public class PredictableQueueTest {
         final List<TimeTask> temp = new ArrayList<>(queue.size());
         while (!queue.isEmpty()) queue.poll().ifPresent(temp::add);
 
-        final Integer[] expected = {1, 4, 3, 2};
         final Integer[] actual = temp.stream().map(TimeTask::getOrderId).toArray(Integer[]::new);
-        assertArrayEquals("Time tasks should be sorted", expected, actual);
+        assertArrayEquals("Time tasks should be sorted", new Integer[]{1, 4, 3, 2}, actual);
     }
 }
