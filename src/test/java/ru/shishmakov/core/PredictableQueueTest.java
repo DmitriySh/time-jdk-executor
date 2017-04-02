@@ -2,7 +2,6 @@ package ru.shishmakov.core;
 
 import org.junit.Test;
 import ru.shishmakov.BaseTest;
-import ru.shishmakov.util.PredictableQueue;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;

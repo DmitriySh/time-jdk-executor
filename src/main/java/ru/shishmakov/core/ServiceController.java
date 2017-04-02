@@ -3,6 +3,7 @@ package ru.shishmakov.core;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.shishmakov.util.Times;
 
 import java.lang.invoke.MethodHandles;
 import java.time.LocalDateTime;
@@ -10,8 +11,8 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -24,17 +25,17 @@ import static ru.shishmakov.util.Threads.STOP_TIMEOUT_SEC;
  */
 public class ServiceController {
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private static final Predicate<TimeTask> TIME_TASK_PREDICATE = buildTimeTaskPredicate();
 
     private static final String NAME = "Services";
-    private static final int DEFAULT_CAPACITY = 4096;
     private final AtomicReference<LifeCycle> SERVICES_STATE = new AtomicReference<>(IDLE);
-    private final PriorityBlockingQueue<TimeTask> queue;
+    private final PredictableQueue<TimeTask> queue;
     private final ExecutorService executor;
     private Producer producer;
     private List<Consumer> consumers;
 
     public ServiceController() {
-        this.queue = new PriorityBlockingQueue<>(DEFAULT_CAPACITY);
+        this.queue = new PredictableQueue<>(TIME_TASK_PREDICATE);
         this.executor = Executors.newCachedThreadPool();
     }
 
@@ -100,4 +101,9 @@ public class ServiceController {
     public boolean scheduleTask(LocalDateTime localDateTime, Callable<?> task) {
         return producer.schedule(localDateTime, task);
     }
+
+    private static Predicate<TimeTask> buildTimeTaskPredicate() {
+        return task -> task != null && Times.isTimeExpired(task.getScheduledTime());
+    }
+
 }

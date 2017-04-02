@@ -1,9 +1,5 @@
-package ru.shishmakov.util;
+package ru.shishmakov.core;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.lang.invoke.MethodHandles;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.PriorityQueue;
@@ -17,8 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * @author Dmitriy Shishmakov on 02.04.17
  */
 public class PredictableQueue<E extends Comparable<E>> {
-    private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-
     private static final int DEFAULT_CAPACITY = 4096;
 
     private final Queue<E> queue;
@@ -29,6 +23,10 @@ public class PredictableQueue<E extends Comparable<E>> {
         this.queue = new PriorityQueue<>(capacity);
         this.predicate = retrieveRule;
         this.lock = new ReentrantLock();
+    }
+
+    public PredictableQueue(Predicate<E> retrieveRule) {
+        this(DEFAULT_CAPACITY, retrieveRule);
     }
 
     public PredictableQueue(int capacity) {
