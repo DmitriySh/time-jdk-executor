@@ -38,7 +38,7 @@ public class Consumer {
         logger.info("{}:{} started", NAME, selfNumber);
         try {
             while (consumerState.get() && !Thread.currentThread().isInterrupted()) {
-                Queues.poll(queue, timeExpired).forEach(t -> {
+                Queues.poll(queue, timeExpired).ifPresent(t -> {
                     logger.debug("<--  {}:{} start process task \'{}\' ...", NAME, selfNumber, t);
                     try {
                         t.call();
