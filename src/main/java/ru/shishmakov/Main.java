@@ -8,6 +8,8 @@ import ru.shishmakov.core.Server;
 public class Main {
 
     public static void main(String[] args) throws InterruptedException {
-        new Server().startAsync().await();
+        new Server()
+                .startAsync()
+                .await();
     }
 }

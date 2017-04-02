@@ -19,11 +19,11 @@ repositories {
 }
 
 ext {
-    buildVesion = '0.1'
+    buildVersion = '0.2'
     powerMockVersion = "1.6.6"
 }
 
-version = buildVesion
+version = buildVersion
 
 dependencies {
     compile 'ch.qos.logback:logback-classic:1+'
@@ -47,7 +47,7 @@ test {
 }
 
 task printVersion {
-    logger.quiet "Version $buildVesion"
+    logger.quiet "Version $buildVersion"
 }
 
 task wrapper(type: Wrapper) {

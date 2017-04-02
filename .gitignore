@@ -18,6 +18,7 @@ target/
 !/gradle/wrapper/gradle-wrapper.jar
 .gradle/
 */build/
+build/
 out/
 
 # Package Files #

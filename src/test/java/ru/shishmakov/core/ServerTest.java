@@ -6,7 +6,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.shishmakov.util.Queues;
+import ru.shishmakov.BaseTest;
 
 import java.lang.invoke.MethodHandles;
 import java.time.LocalDateTime;
@@ -32,8 +32,7 @@ import static ru.shishmakov.util.Threads.STOP_TIMEOUT_SEC;
 /**
  * @author Dmitriy Shishmakov on 23.03.17
  */
-public class ServerTest {
-    private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+public class ServerTest extends BaseTest {
 
     private static ExecutorService executor;
 
@@ -77,12 +76,18 @@ public class ServerTest {
         for (int count = 5; count > 0; count--) {
             final CountDownLatch latch = new CountDownLatch(4);
             final BlockingQueue<Integer> completed = new LinkedBlockingQueue<>();
-            final List<ExecutableTask> tasks = buildExecutableTasks(latch, completed);
+            final LocalDateTime firstTask = LocalDateTime.now(ZoneId.of("UTC")); // 4
+            final LocalDateTime secondTask = firstTask.plusSeconds(1); // 3
+            final LocalDateTime thirdTask = secondTask.plusSeconds(1); // 2
+            final LocalDateTime zeroTask = LocalDateTime.from(firstTask);// 1
+            final List<TestExecutableTask> tasks = Stream.of(zeroTask, thirdTask, secondTask, firstTask)
+                    .map(ldt -> new TestExecutableTask(latch, ldt, completed))
+                    .collect(Collectors.toList());
 
             tasks.forEach(t -> server.scheduleTask(t.getScheduleTime(), t));
             latch.await(5, SECONDS);
 
-            final Integer[] expected = tasks.stream().sorted().map(ExecutableTask::getInnerNumber).toArray(Integer[]::new);
+            final Integer[] expected = tasks.stream().sorted().map(TestExecutableTask::getInnerNumber).toArray(Integer[]::new);
             final List<Integer> actual = new ArrayList<>();
             completed.drainTo(actual);
             assertEquals("All tasks should be executed", 0, latch.getCount());
@@ -94,70 +99,65 @@ public class ServerTest {
     @Test
     public void serverShouldAsyncExecuteAllTasksByScheduleTimeAndIncomeOrder() throws InterruptedException {
         int capacity = 30;
-        final CountDownLatch latch = new CountDownLatch(capacity);
+        final CountDownLatch awaitStart = new CountDownLatch(1);
+        final CountDownLatch awaitComplete = new CountDownLatch(capacity);
         final BlockingQueue<Integer> completed = new LinkedBlockingQueue<>();
-        final List<ExecutableTask> tasks = new ArrayList<>(capacity);
+        final List<TestExecutableTask> tasks = new ArrayList<>(capacity);
 
         final Server server = new Server();
         server.start();
         final LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
         // past
         executor.submit(() -> {
+            awaitStart.countDown();
             final LocalDateTime pastTime = now.minusSeconds(2);
             for (int count = capacity / 3; count > 0; count--) {
-                final ExecutableTask task = new ExecutableTask(latch, pastTime, completed);
+                final TestExecutableTask task = new TestExecutableTask(awaitComplete, pastTime, completed);
                 server.scheduleTask(pastTime, task);
                 tasks.add(task);
             }
         });
         // current time
         executor.submit(() -> {
+            awaitStart.countDown();
             for (int count = capacity / 3; count > 0; count--) {
-                final ExecutableTask task = new ExecutableTask(latch, now, completed);
+                final TestExecutableTask task = new TestExecutableTask(awaitComplete, now, completed);
                 server.scheduleTask(now, task);
                 tasks.add(task);
             }
         });
         // future
         executor.submit(() -> {
+            awaitStart.countDown();
             final LocalDateTime futureTime = now.plusSeconds(2);
             for (int count = capacity / 3; count > 0; count--) {
-                final ExecutableTask task = new ExecutableTask(latch, futureTime, completed);
+                final TestExecutableTask task = new TestExecutableTask(awaitComplete, futureTime, completed);
                 server.scheduleTask(futureTime, task);
                 tasks.add(task);
             }
         });
-        latch.await(5, SECONDS);
+        awaitStart.await();
+        awaitComplete.await(5, SECONDS);
         server.stop();
 
-        final Integer[] expected = tasks.stream().sorted().map(ExecutableTask::getInnerNumber).toArray(Integer[]::new);
+        final Integer[] expected = tasks.stream().sorted().map(TestExecutableTask::getInnerNumber).toArray(Integer[]::new);
         final List<Integer> actual = new ArrayList<>(capacity);
         completed.drainTo(actual);
-        assertEquals("All tasks should be executed", 0, latch.getCount());
+        assertEquals("All tasks should be executed", 0, awaitComplete.getCount());
         assertArrayEquals("Tasks should be executed in legal order", expected, actual.toArray(new Integer[actual.size()]));
     }
 
-    private static List<ExecutableTask> buildExecutableTasks(CountDownLatch latch, BlockingQueue<Integer> completed) {
-        final LocalDateTime firstTask = LocalDateTime.now(ZoneId.of("UTC"));
-        final LocalDateTime secondTask = firstTask.plusSeconds(1);
-        final LocalDateTime thirdTask = secondTask.plusSeconds(1);
-        final LocalDateTime zeroTask = LocalDateTime.from(firstTask);
-        return Stream.of(zeroTask, thirdTask, secondTask, firstTask)
-                .map(ldt -> new ExecutableTask(latch, ldt, completed))
-                .collect(Collectors.toList());
-    }
-
-    public static class ExecutableTask implements Callable<Void>, Comparable<ExecutableTask> {
+    public static class TestExecutableTask implements Callable<Void>, Comparable<TestExecutableTask> {
         private static final Logger taskLogger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-        private static final Comparator<ExecutableTask> comparator = buildComparator();
+        private static final Comparator<TestExecutableTask> comparator = buildComparator();
         private static final AtomicInteger innerIterator = new AtomicInteger(1);
         private final int innerNumber;
         private final CountDownLatch latch;
         private final LocalDateTime scheduleTime;
         private final BlockingQueue<Integer> queue;
 
-        public ExecutableTask(CountDownLatch latch, LocalDateTime scheduleTime, BlockingQueue<Integer> queue) {
+        public TestExecutableTask(CountDownLatch latch, LocalDateTime scheduleTime, BlockingQueue<Integer> queue) {
             this.latch = latch;
             this.scheduleTime = scheduleTime;
             this.queue = queue;
@@ -166,7 +166,7 @@ public class ServerTest {
 
         @Override
         public Void call() throws Exception {
-            Queues.offer(queue, innerNumber);
+            queue.offer(innerNumber);
             latch.countDown();
             taskLogger.debug("Execute task; innerNumber: {}, scheduleTime: {}, now: {}",
                     innerNumber, scheduleTime, LocalDateTime.now(ZoneId.of("UTC")));
@@ -184,20 +184,20 @@ public class ServerTest {
 
         @Override
         public String toString() {
-            return "ExecutableTask{" +
+            return "TestExecutableTask{" +
                     "innerNumber=" + innerNumber +
                     ", scheduleTime=" + scheduleTime +
                     '}';
         }
 
         @Override
-        public int compareTo(ExecutableTask other) {
-            return comparator.compare(this, checkNotNull(other, "ExecutableTask is null"));
+        public int compareTo(TestExecutableTask other) {
+            return comparator.compare(this, checkNotNull(other, "TestExecutableTask is null"));
         }
 
-        private static Comparator<ServerTest.ExecutableTask> buildComparator() {
-            return Comparator.comparing(ExecutableTask::getScheduleTime)
-                    .thenComparing(ExecutableTask::getInnerNumber);
+        private static Comparator<TestExecutableTask> buildComparator() {
+            return Comparator.comparing(TestExecutableTask::getScheduleTime)
+                    .thenComparing(TestExecutableTask::getInnerNumber);
         }
     }
 }
