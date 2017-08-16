@@ -25,8 +25,6 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.spy;
-import static ru.shishmakov.core.LifeCycle.IDLE;
-import static ru.shishmakov.core.LifeCycle.RUN;
 import static ru.shishmakov.util.Threads.STOP_TIMEOUT_SEC;
 
 /**

@@ -7,48 +7,47 @@ import ru.shishmakov.util.Times;
 
 import java.lang.invoke.MethodHandles;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static ru.shishmakov.util.Threads.STOP_TIMEOUT_SEC;
+import static ru.shishmakov.util.Threads.sleepInterrupted;
 
 /**
  * @author Dmitriy Shishmakov on 24.03.17
  */
 public class Service {
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private static final Predicate<TimeTask> TIME_TASK_PREDICATE = buildTimeTaskPredicate();
 
     private final AtomicBoolean watcherState = new AtomicBoolean(true);
     private final PredictableQueue<TimeTask> queue;
     private final ExecutorService executor;
 
     public Service() {
-        this.queue = new PredictableQueue<>(TIME_TASK_PREDICATE);
+        this.queue = new PredictableQueue<>(buildTimeTaskPredicate());
         this.executor = Executors.newCachedThreadPool();
     }
 
     public void start() {
         logger.info("Services starting...");
-        try {
-            executor.execute(this::process);
-        } finally {
-            logger.info("Services started");
-        }
+
+        executor.execute(this::scanScheduledTasks);
+        logger.info("Services started");
     }
 
     public void stop() {
         logger.info("Services stopping...");
-        try {
-            watcherState.compareAndSet(true, false);
-            stopExecutors();
-        } finally {
-            logger.info("Services stopped, state");
-        }
+
+        watcherState.compareAndSet(true, false);
+        stopExecutors();
+        logger.info("Services stopped, state");
     }
 
     public boolean scheduleTask(LocalDateTime localDateTime, Callable<?> task) {
@@ -62,13 +61,14 @@ public class Service {
         }
     }
 
-    private void process() {
+    private void scanScheduledTasks() {
         while (watcherState.get() && !Thread.currentThread().isInterrupted()) {
-//            Threads.sleepWithInterruptedAfterTimeout(config.elevatorIntervalMs(), MILLISECONDS);
-//
-//            if (!consoleCommands.isEmpty()) {
-//                fileLogger.info("command: {}", consoleCommands.peek().getDescription());
-//            }
+            if (queue.hasExpiredTask()) {
+                final List<TimeTask> items = new ArrayList<>();
+                queue.drainTo(items);
+                if (!items.isEmpty()) executor.execute(processTimeTasks(items));
+            }
+            sleepInterrupted(250, MILLISECONDS);
         }
     }
 
@@ -80,6 +80,19 @@ public class Service {
         } catch (Exception e) {
             logger.error("Services exception occurred during stopping executor services", e);
         }
+    }
+
+    private Runnable processTimeTasks(List<TimeTask> timeTasks) {
+        return () -> {
+            for (TimeTask task : timeTasks) {
+                logger.debug("<--  Consumer start process task \'{}\' ...", task);
+                try {
+                    task.call();
+                } catch (Exception e) {
+                    logger.error("X--X  Consumer: failed process task \'{}\'", task, e);
+                }
+            }
+        };
     }
 
     private static Predicate<TimeTask> buildTimeTaskPredicate() {

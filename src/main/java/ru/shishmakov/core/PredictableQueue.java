@@ -29,14 +29,6 @@ public class PredictableQueue<E extends Comparable<E>> {
         this(DEFAULT_CAPACITY, retrieveRule);
     }
 
-    public PredictableQueue(int capacity) {
-        this(capacity, e -> true);
-    }
-
-    public PredictableQueue() {
-        this(DEFAULT_CAPACITY);
-    }
-
     public Optional<E> poll() {
         final ReentrantLock lock = this.lock;
         lock.lock();
@@ -70,6 +62,11 @@ public class PredictableQueue<E extends Comparable<E>> {
         } finally {
             lock.unlock();
         }
+    }
+
+    public boolean hasExpiredTask() {
+        E item = queue.peek();
+        return predicate.test(item);
     }
 
     public int drainTo(Collection<? super E> bag) {
