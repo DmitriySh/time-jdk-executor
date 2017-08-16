@@ -25,7 +25,7 @@ public class PredictableQueueTest extends BaseTest {
         final List<Integer> temp = new ArrayList<>();
         queue.drainTo(temp, queue.size());
 
-        final Integer[] actual = temp.stream().toArray(Integer[]::new);
+        final Integer[] actual = temp.toArray(new Integer[0]);
         assertArrayEquals("Numbers should be sorted", new Integer[]{1, 1, 1}, actual);
     }
 
@@ -52,7 +52,7 @@ public class PredictableQueueTest extends BaseTest {
         final List<Integer> temp = new ArrayList<>(queue.size());
         queue.drainTo(temp);
 
-        final Integer[] actual = temp.stream().toArray(Integer[]::new);
+        final Integer[] actual = temp.toArray(new Integer[0]);
         assertArrayEquals("Numbers should be sorted", new Integer[]{0, 1, 2, 3}, actual);
     }
 
