@@ -23,10 +23,10 @@ public class Server {
 
     private final AtomicReference<LifeCycle> serverState = new AtomicReference<>(IDLE);
 
-    private final ServiceController serviceController;
+    private final Service service;
 
     public Server() {
-        this.serviceController = new ServiceController();
+        this.service = new Service();
     }
 
     public Server start() {
@@ -81,12 +81,12 @@ public class Server {
 
     @VisibleForTesting
     void startServices() {
-        serviceController.startServices();
+        service.start();
     }
 
     @VisibleForTesting
     void stopServices() {
-        serviceController.stopServices();
+        service.stop();
     }
 
     public LifeCycle getState() {
@@ -94,7 +94,7 @@ public class Server {
     }
 
     public boolean scheduleTask(LocalDateTime localDateTime, Callable<?> task) {
-        return serviceController.scheduleTask(
+        return service.scheduleTask(
                 checkNotNull(localDateTime, "localDateTime is null"),
                 checkNotNull(task, "task is null"));
     }

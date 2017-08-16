@@ -52,9 +52,4 @@ public class Consumer {
         }
     }
 
-    protected void stop() {
-        consumerState.compareAndSet(true, false);
-        logger.info("Consumer: {} stopped", selfNumber);
-    }
-
 }

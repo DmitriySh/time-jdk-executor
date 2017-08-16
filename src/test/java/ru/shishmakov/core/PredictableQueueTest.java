@@ -65,10 +65,10 @@ public class PredictableQueueTest extends BaseTest {
         final LocalDateTime zeroTask = LocalDateTime.from(firstTask);
 
         final PredictableQueue<TimeTask> queue = new PredictableQueue<>();
-        queue.offer(new TimeTask(++order, zeroTask, null)); // 1
-        queue.offer(new TimeTask(++order, thirdTask, null)); // 2
-        queue.offer(new TimeTask(++order, secondTask, null)); // 3
-        queue.offer(new TimeTask(++order, firstTask, null)); // 4
+        queue.offer(new TimeTask(zeroTask, null)); // 1
+        queue.offer(new TimeTask(thirdTask, null)); // 2
+        queue.offer(new TimeTask(secondTask, null)); // 3
+        queue.offer(new TimeTask(firstTask, null)); // 4
         assertFalse("Queue should not be empty", queue.isEmpty());
 
         final List<TimeTask> temp = new ArrayList<>(queue.size());
