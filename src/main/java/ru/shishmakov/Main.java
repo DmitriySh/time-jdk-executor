@@ -9,7 +9,7 @@ public class Main {
 
     public static void main(String[] args) throws InterruptedException {
         new Server()
-                .startAsync()
+                .start()
                 .await();
     }
 }

@@ -6,12 +6,10 @@ import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static ru.shishmakov.util.Threads.sleepInterrupted;
 
 /**
@@ -20,11 +18,9 @@ import static ru.shishmakov.util.Threads.sleepInterrupted;
 public class Consumer {
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-    private static final String NAME = MethodHandles.lookup().lookupClass().getSimpleName();
     private static final AtomicInteger numberIterator = new AtomicInteger(1);
     private final int selfNumber = numberIterator.getAndIncrement();
     private final AtomicBoolean consumerState = new AtomicBoolean(true);
-    private final CountDownLatch awaitStop = new CountDownLatch(1);
     private final PredictableQueue<TimeTask> queue;
 
     public Consumer(PredictableQueue<TimeTask> queue) {
@@ -32,43 +28,33 @@ public class Consumer {
     }
 
     protected void start() {
-        logger.info("{}:{} started", NAME, selfNumber);
+        logger.info("Consumer: {} started", selfNumber);
         try {
             while (consumerState.get() && !Thread.currentThread().isInterrupted()) {
                 final List<TimeTask> items = new ArrayList<>();
                 queue.drainTo(items);
                 items.forEach(t -> {
-                    logger.debug("<--  {}:{} start process task \'{}\' ...", NAME, selfNumber, t);
+                    logger.debug("<--  Consumer: {} start process task \'{}\' ...", selfNumber, t);
                     try {
                         t.call();
                     } catch (Exception e) {
-                        logger.error("X--X  {}:{} failed process task '{}'", NAME, selfNumber, e);
+                        logger.error("X--X  Consumer: {} failed process task '{}'", selfNumber, e);
                     }
                 });
                 sleepInterrupted(250, MILLISECONDS);
             }
         } catch (Exception e) {
-            logger.error("{}:{} error in time of processing", NAME, selfNumber, e);
+            logger.error("Consumer: {} error in time of processing", selfNumber, e);
         } finally {
-            shutdownConsumer();
-            awaitStop.countDown();
+            if (consumerState.compareAndSet(true, false)) {
+                logger.debug("Consumer: {} waiting for shutdown process to complete...", selfNumber);
+            }
         }
     }
 
     protected void stop() {
-        logger.info("{}:{} stopping...", NAME, selfNumber);
-        try {
-            shutdownConsumer();
-            awaitStop.await(2, SECONDS);
-            logger.info("{}:{} stopped", NAME, selfNumber);
-        } catch (Exception e) {
-            logger.error("{}:{} error in time of stopping", NAME, selfNumber, e);
-        }
+        consumerState.compareAndSet(true, false);
+        logger.info("Consumer: {} stopped", selfNumber);
     }
 
-    private void shutdownConsumer() {
-        if (consumerState.compareAndSet(true, false)) {
-            logger.debug("{}:{} waiting for shutdown process to complete...", NAME, selfNumber);
-        }
-    }
 }
