@@ -19,7 +19,7 @@ repositories {
 }
 
 ext {
-    buildVersion = '0.2'
+    buildVersion = '0.3'
     powerMockVersion = "1.6.6"
 }
 
