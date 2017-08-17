@@ -68,7 +68,7 @@ public class Service {
                 queue.drainTo(items);
                 if (!items.isEmpty()) executor.execute(processTimeTasks(items));
             }
-            sleepInterrupted(250, MILLISECONDS);
+            sleepInterrupted(100, MILLISECONDS);
         }
     }
 
