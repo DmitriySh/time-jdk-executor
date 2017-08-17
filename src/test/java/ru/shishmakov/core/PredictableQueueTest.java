@@ -82,7 +82,7 @@ public class PredictableQueueTest extends BaseTest {
         final List<TimeTask> bag = new ArrayList<>(queue.size());
         while (!queue.isEmpty()) queue.poll().ifPresent(bag::add);
 
-        final Integer[] actual = bag.stream().map(TimeTask::getOrderId).toArray(Integer[]::new);
-        assertArrayEquals("Time tasks should be sorted by datetime and order", new Integer[]{1, 4, 3, 2}, actual);
+        final Long[] actual = bag.stream().map(TimeTask::getOrderId).toArray(Long[]::new);
+        assertArrayEquals("Time tasks should be sorted by datetime and order", new Long[]{1L, 4L, 3L, 2L}, actual);
     }
 }

@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -19,9 +19,9 @@ public class TimeTask implements Callable, Comparable<TimeTask> {
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private static final Comparator<TimeTask> TT_COMPARATOR = buildTaskTimeComparator();
-    private static final AtomicInteger orderIterator = new AtomicInteger(1);
+    private static final AtomicLong orderIterator = new AtomicLong(1);
 
-    private final int orderId;
+    private final long orderId;
     private final long scheduledTime;
     private final Callable<?> task;
 
@@ -31,7 +31,7 @@ public class TimeTask implements Callable, Comparable<TimeTask> {
         this.task = task;
     }
 
-    public int getOrderId() {
+    public long getOrderId() {
         return orderId;
     }
 
