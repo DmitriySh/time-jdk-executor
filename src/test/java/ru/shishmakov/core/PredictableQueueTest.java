@@ -8,6 +8,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Predicate;
 
 import static org.junit.Assert.*;
 
@@ -17,64 +18,71 @@ import static org.junit.Assert.*;
 public class PredictableQueueTest extends BaseTest {
 
     @Test
-    public void drainToShouldGetFirstItemsLessTwoIfPredicateAssignRuleRetrieveLessTwo() {
-        final PredictableQueue<Integer> queue = new PredictableQueue<>(1, e -> e < 2);
-        queue.addAll(Arrays.asList(1, 1, 1, 2, 3, 4));
+    public void drainToShouldGetFirstItemsLessTwoIfPredicateRuleRetrieveLessTwo() {
+        Predicate<Integer> lessTwo = e -> e < 2;
+        final PredictableQueue<Integer> queue = new PredictableQueue<>(1, lessTwo);
+        queue.addAll(Arrays.asList(1, 2, 3, 1, 0, 4));
+        int sizeBefore = queue.size();
         assertFalse("Queue should not be empty", queue.isEmpty());
 
-        final List<Integer> temp = new ArrayList<>();
-        queue.drainTo(temp, queue.size());
+        final List<Integer> bag = new ArrayList<>();
+        queue.drainTo(bag, queue.size());
 
-        final Integer[] actual = temp.toArray(new Integer[0]);
-        assertArrayEquals("Numbers should be sorted", new Integer[]{1, 1, 1}, actual);
+        final Integer[] actual = bag.toArray(new Integer[0]);
+        assertEquals("Queue size should be less", sizeBefore - bag.size(), queue.size());
+        assertArrayEquals("Numbers should be less 2", new Integer[]{0, 1, 1}, actual);
     }
 
     @Test
-    public void pollAndDrainToShouldNotGetItemsIfPredicateProhibitRetrieves() {
-        final PredictableQueue<Integer> queue = new PredictableQueue<>(1, e -> false);
+    public void pollAndDrainToShouldNotGetItemsIfPredicateProhibitAnyRetrievals() {
+        Predicate<Integer> prohibitRetrievals = e -> false;
+        final PredictableQueue<Integer> queue = new PredictableQueue<>(1, prohibitRetrievals);
         queue.addAll(Arrays.asList(1, 3, 2, 0));
+        int sizeBefore = queue.size();
         assertFalse("Queue should not be empty", queue.isEmpty());
 
-        final List<Integer> temp = new ArrayList<>();
-        for (int count = 5; count > 0; count--) {
-            queue.poll().ifPresent(temp::add);
-            queue.drainTo(temp, queue.size());
+        final List<Integer> bag = new ArrayList<>();
+        for (int effort = 5; effort > 0; effort--) {
+            queue.poll().ifPresent(bag::add);
+            queue.drainTo(bag, queue.size());
         }
-        assertTrue("Numbers should be sorted", temp.isEmpty());
+        assertTrue("Numbers did not extract", bag.isEmpty());
+        assertEquals("Queue size should be the same", sizeBefore, queue.size());
     }
 
     @Test
     public void addAllShouldFillQueueAndDrainToShouldGetNumbersSortedByNaturalOrder() {
-        final PredictableQueue<Integer> queue = new PredictableQueue<>(1);
+        Predicate<Integer> retrieveAll = e -> true;
+        final PredictableQueue<Integer> queue = new PredictableQueue<>(1, retrieveAll);
         queue.addAll(Arrays.asList(1, 3, 2, 0));
         assertFalse("Queue should not be empty", queue.isEmpty());
 
-        final List<Integer> temp = new ArrayList<>(queue.size());
-        queue.drainTo(temp);
+        final List<Integer> bag = new ArrayList<>(queue.size());
+        queue.drainTo(bag);
 
-        final Integer[] actual = temp.toArray(new Integer[0]);
+        final Integer[] actual = bag.toArray(new Integer[0]);
         assertArrayEquals("Numbers should be sorted", new Integer[]{0, 1, 2, 3}, actual);
+        assertTrue("Queue should be empty", queue.isEmpty());
     }
 
     @Test
     public void offerShouldFillQueueAndPollShouldGetTimeTasksSortedByScheduleTimeAndIncomeOrder() {
-        int order = 0;
         final LocalDateTime firstTask = LocalDateTime.now(ZoneId.of("UTC"));
         final LocalDateTime secondTask = firstTask.plusSeconds(3);
         final LocalDateTime thirdTask = secondTask.plusSeconds(2);
         final LocalDateTime zeroTask = LocalDateTime.from(firstTask);
 
-        final PredictableQueue<TimeTask> queue = new PredictableQueue<>();
-        queue.offer(new TimeTask(zeroTask, null)); // 1
-        queue.offer(new TimeTask(thirdTask, null)); // 2
-        queue.offer(new TimeTask(secondTask, null)); // 3
-        queue.offer(new TimeTask(firstTask, null)); // 4
+        final PredictableQueue<TimeTask> queue = new PredictableQueue<>(e -> true);
+        queue.offer(new TimeTask(zeroTask, null)); // 1 order
+        queue.offer(new TimeTask(thirdTask, null)); // 2 order
+        queue.offer(new TimeTask(secondTask, null)); // 3 order
+        queue.offer(new TimeTask(firstTask, null)); // 4 order
         assertFalse("Queue should not be empty", queue.isEmpty());
 
-        final List<TimeTask> temp = new ArrayList<>(queue.size());
-        while (!queue.isEmpty()) queue.poll().ifPresent(temp::add);
+        final List<TimeTask> bag = new ArrayList<>(queue.size());
+        while (!queue.isEmpty()) queue.poll().ifPresent(bag::add);
 
-        final Integer[] actual = temp.stream().map(TimeTask::getOrderId).toArray(Integer[]::new);
-        assertArrayEquals("Time tasks should be sorted", new Integer[]{1, 4, 3, 2}, actual);
+        final Integer[] actual = bag.stream().map(TimeTask::getOrderId).toArray(Integer[]::new);
+        assertArrayEquals("Time tasks should be sorted by datetime and order", new Integer[]{1, 4, 3, 2}, actual);
     }
 }
