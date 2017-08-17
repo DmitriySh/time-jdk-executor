@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * @author Dmitriy Shishmakov on 24.03.17
+ * @author Dmitriy Shishmakov on 17.08.17
  */
 public class TimeTask implements Callable, Comparable<TimeTask> {
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());

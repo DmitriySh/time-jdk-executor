@@ -26,7 +26,7 @@ import static org.junit.Assert.assertEquals;
 import static ru.shishmakov.util.Threads.STOP_TIMEOUT_SEC;
 
 /**
- * @author Dmitriy Shishmakov on 23.03.17
+ * @author Dmitriy Shishmakov on 17.08.17
  */
 public class ServiceTest extends BaseTest {
 

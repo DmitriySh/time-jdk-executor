@@ -21,7 +21,7 @@ import static ru.shishmakov.util.Threads.STOP_TIMEOUT_SEC;
 import static ru.shishmakov.util.Threads.sleepInterrupted;
 
 /**
- * @author Dmitriy Shishmakov on 24.03.17
+ * @author Dmitriy Shishmakov on 17.08.17
  */
 public class Service {
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());

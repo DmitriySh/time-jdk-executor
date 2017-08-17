@@ -10,7 +10,7 @@ import java.util.function.Predicate;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * @author Dmitriy Shishmakov on 02.04.17
+ * @author Dmitriy Shishmakov on 17.08.17
  */
 public class PredictableQueue<E extends Comparable<E>> {
     private static final int DEFAULT_CAPACITY = 4096;
