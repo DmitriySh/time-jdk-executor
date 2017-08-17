@@ -1,7 +1,7 @@
 package ru.shishmakov.util;
 
 /**
- * @author Dmitriy Shishmakov on 26.03.17
+ * @author Dmitriy Shishmakov on 17.08.17
  */
 public class Times {
 

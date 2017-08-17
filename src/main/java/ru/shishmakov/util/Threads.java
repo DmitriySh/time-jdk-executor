@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /**
- * @author Dmitriy Shishmakov on 13.03.17
+ * @author Dmitriy Shishmakov on 17.08.17
  */
 public final class Threads {
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());

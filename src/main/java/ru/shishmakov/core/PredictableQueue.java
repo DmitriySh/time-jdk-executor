@@ -10,7 +10,7 @@ import java.util.function.Predicate;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * @author Dmitriy Shishmakov on 02.04.17
+ * @author Dmitriy Shishmakov on 17.08.17
  */
 public class PredictableQueue<E extends Comparable<E>> {
     private static final int DEFAULT_CAPACITY = 4096;
@@ -27,14 +27,6 @@ public class PredictableQueue<E extends Comparable<E>> {
 
     public PredictableQueue(Predicate<E> retrieveRule) {
         this(DEFAULT_CAPACITY, retrieveRule);
-    }
-
-    public PredictableQueue(int capacity) {
-        this(capacity, e -> true);
-    }
-
-    public PredictableQueue() {
-        this(DEFAULT_CAPACITY);
     }
 
     public Optional<E> poll() {
@@ -70,6 +62,11 @@ public class PredictableQueue<E extends Comparable<E>> {
         } finally {
             lock.unlock();
         }
+    }
+
+    public boolean hasExpiredTask() {
+        E item = queue.peek();
+        return predicate.test(item);
     }
 
     public int drainTo(Collection<? super E> bag) {
