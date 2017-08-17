@@ -36,18 +36,18 @@ public class Service {
     }
 
     public void start() {
-        logger.info("Services starting...");
+        logger.info("Service starting...");
 
         executor.execute(this::scanScheduledTasks);
-        logger.info("Services started");
+        logger.info("Service started");
     }
 
     public void stop() {
-        logger.info("Services stopping...");
+        logger.info("Service stopping...");
 
         watcherState.compareAndSet(true, false);
         stopExecutors();
-        logger.info("Services stopped, state");
+        logger.info("Service stopped, state");
     }
 
     public boolean scheduleTask(LocalDateTime localDateTime, Callable<?> task) {
@@ -73,12 +73,12 @@ public class Service {
     }
 
     private void stopExecutors() {
-        logger.info("Services executor stopping...");
+        logger.info("Service executor stopping...");
         try {
             MoreExecutors.shutdownAndAwaitTermination(executor, STOP_TIMEOUT_SEC, SECONDS);
             logger.info("Executor services stopped");
         } catch (Exception e) {
-            logger.error("Services exception occurred during stopping executor services", e);
+            logger.error("Service exception occurred during stopping executor services", e);
         }
     }
 
