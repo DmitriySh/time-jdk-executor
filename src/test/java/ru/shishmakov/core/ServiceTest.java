@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -23,14 +23,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.spy;
 import static ru.shishmakov.util.Threads.STOP_TIMEOUT_SEC;
 
 /**
  * @author Dmitriy Shishmakov on 23.03.17
  */
-public class ServerTest extends BaseTest {
+public class ServiceTest extends BaseTest {
 
     private static ExecutorService executor;
 
@@ -45,129 +43,118 @@ public class ServerTest extends BaseTest {
     }
 
     @Test
-    public void afterStartServerShouldHasRunState() {
-        final Server server = spy(new Server());
-        doNothing().when(server).startServices();
-        doNothing().when(server).stopServices();
-
-        server.start();
-
-        assertEquals("Server after start should be in " + RUN + " state", RUN, server.getState());
-    }
-
-    @Test
-    public void afterStopServerShouldHasIdleState() {
-        final Server server = spy(new Server());
-        doNothing().when(server).startServices();
-        doNothing().when(server).stopServices();
-
-        server.start();
-        server.stop();
-
-        assertEquals("Server after start should be in " + IDLE + " state", IDLE, server.getState());
-    }
-
-    @Test
-    public void serverShouldExecuteAllTasksByScheduleTimeAndIncomeOrder() throws InterruptedException {
-        final Server server = new Server();
-        server.start();
-        for (int count = 5; count > 0; count--) {
+    public void serviceShouldExecuteAllTasksByScheduleTimeAndIncomeOrder() throws InterruptedException {
+        final Service service = new Service();
+        service.start();
+        for (int effort = 5; effort > 0; effort--) {
             final CountDownLatch latch = new CountDownLatch(4);
-            final BlockingQueue<Integer> completed = new LinkedBlockingQueue<>();
-            final LocalDateTime firstTask = LocalDateTime.now(ZoneId.of("UTC")); // 4
-            final LocalDateTime secondTask = firstTask.plusSeconds(1); // 3
-            final LocalDateTime thirdTask = secondTask.plusSeconds(1); // 2
-            final LocalDateTime zeroTask = LocalDateTime.from(firstTask);// 1
+            final BlockingQueue<Long> completed = new LinkedBlockingQueue<>();
+            final LocalDateTime firstTask = LocalDateTime.now(ZoneId.of("UTC")); // 4 order
+            final LocalDateTime secondTask = firstTask.plusSeconds(1); // 3 order
+            final LocalDateTime thirdTask = secondTask.plusSeconds(1); // 2 order
+            final LocalDateTime zeroTask = LocalDateTime.from(firstTask);// 1 order
             final List<TestExecutableTask> tasks = Stream.of(zeroTask, thirdTask, secondTask, firstTask)
                     .map(ldt -> new TestExecutableTask(latch, ldt, completed))
                     .collect(Collectors.toList());
 
-            tasks.forEach(t -> server.scheduleTask(t.getScheduleTime(), t));
-            latch.await(5, SECONDS);
+            tasks.forEach(t -> service.scheduleTask(t.getScheduleTime(), t));
+            latch.await(7, SECONDS);
 
-            final Integer[] expected = tasks.stream().sorted().map(TestExecutableTask::getInnerNumber).toArray(Integer[]::new);
-            final List<Integer> actual = new ArrayList<>();
+            final Long[] expected = tasks.stream().sorted().map(TestExecutableTask::getOrderId).toArray(Long[]::new);
+            final List<Long> actual = new ArrayList<>();
             completed.drainTo(actual);
             assertEquals("All tasks should be executed", 0, latch.getCount());
-            assertArrayEquals("Tasks should be executed in legal order", expected, actual.toArray(new Integer[actual.size()]));
+            assertArrayEquals("Tasks should be executed in legal order", expected, actual.toArray(new Long[actual.size()]));
         }
-        server.stop();
+        service.stop();
     }
 
     @Test
-    public void serverShouldAsyncExecuteAllTasksByScheduleTimeAndIncomeOrder() throws InterruptedException {
+    public void serviceShouldAsyncExecuteAllTasksByScheduleTimeAndIncomeOrder() throws InterruptedException {
         int capacity = 30;
         final CountDownLatch awaitStart = new CountDownLatch(1);
         final CountDownLatch awaitComplete = new CountDownLatch(capacity);
-        final BlockingQueue<Integer> completed = new LinkedBlockingQueue<>();
+        final BlockingQueue<Long> completed = new LinkedBlockingQueue<>();
         final List<TestExecutableTask> tasks = new ArrayList<>(capacity);
 
-        final Server server = new Server();
-        server.start();
+        final Service service = new Service();
+        service.start();
         final LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
         // past
         executor.submit(() -> {
-            awaitStart.countDown();
+            try {
+                awaitStart.await();
+            } catch (InterruptedException e) {
+                logger.error("Error at the time waiting to start", e);
+            }
             final LocalDateTime pastTime = now.minusSeconds(2);
             for (int count = capacity / 3; count > 0; count--) {
                 final TestExecutableTask task = new TestExecutableTask(awaitComplete, pastTime, completed);
-                server.scheduleTask(pastTime, task);
+                service.scheduleTask(pastTime, task);
                 tasks.add(task);
             }
         });
         // current time
         executor.submit(() -> {
-            awaitStart.countDown();
+            try {
+                awaitStart.await();
+            } catch (InterruptedException e) {
+                logger.error("Error at the time waiting to start", e);
+            }
             for (int count = capacity / 3; count > 0; count--) {
                 final TestExecutableTask task = new TestExecutableTask(awaitComplete, now, completed);
-                server.scheduleTask(now, task);
+                service.scheduleTask(now, task);
                 tasks.add(task);
             }
         });
         // future
         executor.submit(() -> {
-            awaitStart.countDown();
+            try {
+                awaitStart.await();
+            } catch (InterruptedException e) {
+                logger.error("Error at the time waiting to start", e);
+            }
             final LocalDateTime futureTime = now.plusSeconds(2);
             for (int count = capacity / 3; count > 0; count--) {
                 final TestExecutableTask task = new TestExecutableTask(awaitComplete, futureTime, completed);
-                server.scheduleTask(futureTime, task);
+                service.scheduleTask(futureTime, task);
                 tasks.add(task);
             }
         });
-        awaitStart.await();
-        awaitComplete.await(5, SECONDS);
-        server.stop();
+        awaitStart.countDown();
+        awaitComplete.await(7, SECONDS);
+        service.stop();
 
-        final Integer[] expected = tasks.stream().sorted().map(TestExecutableTask::getInnerNumber).toArray(Integer[]::new);
-        final List<Integer> actual = new ArrayList<>(capacity);
+        final Long[] expected = tasks.stream().sorted().map(TestExecutableTask::getOrderId).toArray(Long[]::new);
+        final List<Long> actual = new ArrayList<>(capacity);
         completed.drainTo(actual);
         assertEquals("All tasks should be executed", 0, awaitComplete.getCount());
-        assertArrayEquals("Tasks should be executed in legal order", expected, actual.toArray(new Integer[actual.size()]));
+        assertArrayEquals("Tasks should be executed in legal order", expected, actual.toArray(new Long[actual.size()]));
     }
 
     public static class TestExecutableTask implements Callable<Void>, Comparable<TestExecutableTask> {
         private static final Logger taskLogger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
         private static final Comparator<TestExecutableTask> comparator = buildComparator();
-        private static final AtomicInteger innerIterator = new AtomicInteger(1);
-        private final int innerNumber;
+        private static final AtomicLong orderIterator = new AtomicLong(1);
+        private final long orderId;
         private final CountDownLatch latch;
         private final LocalDateTime scheduleTime;
-        private final BlockingQueue<Integer> queue;
+        private final BlockingQueue<Long> queue;
 
-        public TestExecutableTask(CountDownLatch latch, LocalDateTime scheduleTime, BlockingQueue<Integer> queue) {
+        public TestExecutableTask(CountDownLatch latch, LocalDateTime scheduleTime, BlockingQueue<Long> queue) {
             this.latch = latch;
             this.scheduleTime = scheduleTime;
             this.queue = queue;
-            this.innerNumber = innerIterator.getAndIncrement();
+            this.orderId = orderIterator.getAndIncrement();
         }
 
         @Override
         public Void call() throws Exception {
-            queue.offer(innerNumber);
+            queue.offer(orderId);
             latch.countDown();
-            taskLogger.debug("Execute task; innerNumber: {}, scheduleTime: {}, now: {}",
-                    innerNumber, scheduleTime, LocalDateTime.now(ZoneId.of("UTC")));
+            taskLogger.debug("Execute task; orderId: {}, scheduleTime: {}, now: {}",
+                    orderId, scheduleTime, LocalDateTime.now(ZoneId.of("UTC")));
             return null;
         }
 
@@ -176,14 +163,14 @@ public class ServerTest extends BaseTest {
             return scheduleTime;
         }
 
-        public int getInnerNumber() {
-            return innerNumber;
+        public long getOrderId() {
+            return orderId;
         }
 
         @Override
         public String toString() {
             return "TestExecutableTask{" +
-                    "innerNumber=" + innerNumber +
+                    "orderId=" + orderId +
                     ", scheduleTime=" + scheduleTime +
                     '}';
         }
@@ -195,7 +182,7 @@ public class ServerTest extends BaseTest {
 
         private static Comparator<TestExecutableTask> buildComparator() {
             return Comparator.comparing(TestExecutableTask::getScheduleTime)
-                    .thenComparing(TestExecutableTask::getInnerNumber);
+                    .thenComparing(TestExecutableTask::getOrderId);
         }
     }
 }
