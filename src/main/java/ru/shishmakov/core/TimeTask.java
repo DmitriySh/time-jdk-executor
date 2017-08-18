@@ -8,28 +8,30 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * @author Dmitriy Shishmakov on 24.03.17
+ * @author Dmitriy Shishmakov on 17.08.17
  */
 public class TimeTask implements Callable, Comparable<TimeTask> {
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private static final Comparator<TimeTask> TT_COMPARATOR = buildTaskTimeComparator();
-    private static final String NAME = MethodHandles.lookup().lookupClass().getSimpleName();
-    private final int orderId;
+    private static final AtomicLong orderIterator = new AtomicLong(1);
+
+    private final long orderId;
     private final long scheduledTime;
     private final Callable<?> task;
 
-    public TimeTask(int orderId, LocalDateTime localDateTime, Callable<?> task) {
-        this.orderId = orderId;
+    public TimeTask(LocalDateTime localDateTime, Callable<?> task) {
+        this.orderId = orderIterator.getAndIncrement();
         this.scheduledTime = localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli();
         this.task = task;
     }
 
-    public int getOrderId() {
+    public long getOrderId() {
         return orderId;
     }
 
@@ -57,7 +59,7 @@ public class TimeTask implements Callable, Comparable<TimeTask> {
 
     @Override
     public int compareTo(TimeTask other) {
-        return TT_COMPARATOR.compare(this, checkNotNull(other, "{} is null", NAME));
+        return TT_COMPARATOR.compare(this, checkNotNull(other, "Task is null"));
     }
 
     private static Comparator<TimeTask> buildTaskTimeComparator() {
